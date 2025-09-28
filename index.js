@@ -1,145 +1,105 @@
-// 1. KEEP-AWAKE WEBSERVER - This must create a server on port 3000
-require("./keep_alive");
+const mineflayer = require('mineflayer');
+const MAGMANODE_API_KEY = 'ptlc_qVJhkD9kXZBh1jsac3svAV1GBeGkKag9ebFwACgkdAQ';
+const SERVER_ID = '1f6ba1b7';
 
-// 2. LOAD MINEFLATER LIBRARY
-const mineflayer = require("mineflayer");
+let bot = null;
+let serverOfflineSince = null;
 
-// 3. YOUR JAVA SERVER DETAILS
-const botOptions = {
-  host: "gold.magmanode.com",
-  port: 30265,
-  username: "madbot",
-  auth: "offline",
-};
+async function restartServer() {
+  try {
+    console.log('🔄 Attempting to restart Minecraft server...');
+    
+    const response = await fetch(`https://panel.magmanode.com/api/client/servers/${SERVER_ID}/power`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${MAGMANODE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        signal: 'restart'
+      })
+    });
 
-// 4. CREATE THE BOT
-console.log(
-  "Connecting to Java server at " + botOptions.host + ":" + botOptions.port,
-);
-const bot = mineflayer.createBot(botOptions);
+    if (response.status === 204) {
+      console.log('✅ Server restart command sent successfully!');
+      return true;
+    } else {
+      console.log('❌ Failed to restart server:', response.status);
+      return false;
+    }
+  } catch (error) {
+    console.log('❌ Error restarting server:', error.message);
+    return false;
+  }
+}
 
-// Anti-AFK variables
-let afkInterval;
-let isSneaking = false;
+function createBot() {
+  console.log('Connecting to Minecraft server...');
+  
+  bot = mineflayer.createBot({
+    host: 'gold.magmanode.com',
+    port: 30265,
+    username: 'MadAFKBot', // ← Change to any name you want!
+  });
 
-// Anti-AFK function
-function startAntiAFK() {
-  console.log("Starting anti-AFK system...");
+  bot.on('spawn', () => {
+    console.log('✅ Bot successfully joined the server!');
+    serverOfflineSince = null;
+    startAntiAFK(bot);
+  });
 
-  afkInterval = setInterval(
-    () => {
-      if (!bot.player) return;
+  bot.on('end', async (reason) => {
+    console.log(`🔌 Bot disconnected: ${reason}`);
+    
+    const now = Date.now();
+    if (!serverOfflineSince) {
+      serverOfflineSince = now;
+    }
 
-      // Random action selection
-      const action = Math.floor(Math.random() * 3);
-
-      switch (action) {
-        case 0:
-          // Jump
-          console.log("Anti-AFK: Jumping");
-          bot.setControlState("jump", true);
-          setTimeout(() => {
-            bot.setControlState("jump", false);
-          }, 500);
-          break;
-
-        case 1:
-          // Sneak toggle
-          console.log("Anti-AFK: Toggling sneak");
-          isSneaking = !isSneaking;
-          bot.setControlState("sneak", isSneaking);
-          // Auto-unsneak after 2-4 seconds
-          setTimeout(
-            () => {
-              if (isSneaking) {
-                bot.setControlState("sneak", false);
-                isSneaking = false;
-              }
-            },
-            2000 + Math.random() * 2000,
-          );
-          break;
-
-        case 2:
-          // Look around randomly
-          console.log("Anti-AFK: Looking around");
-          const yaw = Math.random() * Math.PI * 2;
-          const pitch = Math.random() * Math.PI - Math.PI / 2;
-          bot.look(yaw, pitch, false);
-          break;
+    // If server has been offline for 3+ minutes, restart it
+    if (serverOfflineSince && (now - serverOfflineSince) > 3 * 60 * 1000) {
+      console.log('🚨 Server appears to be crashed! Attempting restart...');
+      const restartSuccess = await restartServer();
+      
+      if (restartSuccess) {
+        console.log('🕒 Waiting 2 minutes for server to restart...');
+        setTimeout(createBot, 120000);
       }
-    },
-    8000 + Math.random() * 7000,
-  ); // Random interval between 8-15 seconds
+    } else {
+      // Normal reconnection attempt
+      console.log('🔄 Reconnecting in 30 seconds...');
+      setTimeout(createBot, 30000);
+    }
+  });
+
+  bot.on('error', (err) => {
+    console.log('❌ Connection error:', err.message);
+  });
 }
 
-// Stop anti-AFK function
-function stopAntiAFK() {
-  if (afkInterval) {
-    clearInterval(afkInterval);
-    console.log("Anti-AFK system stopped");
-  }
-  // Make sure we're not stuck sneaking
-  bot.setControlState("sneak", false);
-  isSneaking = false;
+function startAntiAFK(bot) {
+  setInterval(() => {
+    // Anti-AFK: Random actions
+    const actions = ['jump', 'move', 'look'];
+    const action = actions[Math.floor(Math.random() * actions.length)];
+    
+    switch(action) {
+      case 'jump':
+        bot.setControlState('jump', true);
+        setTimeout(() => bot.setControlState('jump', false), 1000);
+        console.log('🤖 Anti-AFK: Jumping');
+        break;
+      case 'move':
+        bot.setControlState('forward', true);
+        setTimeout(() => bot.setControlState('forward', false), 2000);
+        console.log('🤖 Anti-AFK: Moving forward');
+        break;
+      case 'look':
+        bot.look(Math.random() * Math.PI, Math.random() * Math.PI);
+        console.log('🤖 Anti-AFK: Looking around');
+        break;
+    }
+  }, 120000 + Math.random() * 60000); // Every 2-3 minutes
 }
 
-// 5. ENHANCED EVENT HANDLING
-bot.on("login", () => {
-  console.log("Login successful! Server accepted our connection.");
-});
-
-bot.on("spawn", () => {
-  console.log("Bot spawned in the world! It should be visible now.");
-  bot.chat("Hello everyone! I am a bot from Replit with anti-AFK!");
-
-  // Start anti-AFK after a short delay
-  setTimeout(() => {
-    startAntiAFK();
-  }, 3000);
-});
-
-bot.on("spawnReset", () => {
-  console.log("Bot got stuck and is being respawned...");
-  stopAntiAFK();
-});
-
-// 6. ERROR HANDLING
-bot.on("error", (err) => {
-  console.log("Error:", err.message);
-  stopAntiAFK();
-});
-
-bot.on("end", (reason) => {
-  console.log("Disconnected from server. Reason:", reason);
-  stopAntiAFK();
-
-  // Optional: Add logic to automatically reconnect after a delay
-  console.log("Attempting to reconnect in 5 seconds...");
-  setTimeout(() => {
-    console.log("Reconnecting...");
-    mineflayer.createBot(botOptions);
-  }, 5000);
-});
-
-// 7. DEBUGGING
-bot.on("message", (message) => {
-  console.log("Server message:", message.toString());
-});
-
-// Handle process exit to clean up
-process.on("SIGINT", () => {
-  console.log("Shutting down bot...");
-  stopAntiAFK();
-  bot.quit();
-  process.exit();
-});
-
-// Check if bot is actually connected
-setTimeout(() => {
-  if (bot.player) {
-    console.log("Bot entity exists at position:", bot.player.position);
-  } else {
-    console.log("Bot entity does not exist yet...");
-  }
-}, 5000);
+createBot();
