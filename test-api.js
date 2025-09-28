@@ -1,5 +1,4 @@
-const fetch = require('node-fetch');
-
+// test-api.js - Using built-in fetch (no install needed)
 const MAGMANODE_API_KEY = 'ptlc_qVJhkD9kXZB';
 const SERVER_ID = '1f6ba1b7';
 
@@ -27,7 +26,7 @@ async function testEndpoints() {
       if (response.ok) {
         const data = await response.json();
         console.log('✅ SUCCESS! API is working!');
-        console.log('Server data:', data);
+        console.log('Server data:', JSON.stringify(data, null, 2));
       } else {
         console.log('❌ Failed:', response.status);
       }
