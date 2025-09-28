@@ -1,55 +1,38 @@
-// test-new-key-simple.js
-const MAGMANODE_API_KEY = 'ptic_QuuKCOMiQrrab70qm2kTOpG91BpQXfN2SKmZB1FjLcT';
+// test-api.js
+const MAGMANODE_API_KEY = 'ptlc_IDuqtjbQoir6bP9NJWXoNcOjX77YkRUz6zVYFPfzpqy';
 const SERVER_ID = '87582fcf';
 
-async function testConnection() {
-  console.log('🔍 Testing if we can access ANY server info...\n');
+async function testNewKey() {
+  console.log('🔍 Testing NEW API Key...\n');
   
-  // First, try to list all servers (if possible)
   try {
-    console.log('1. Testing general API access...');
-    const serversResponse = await fetch('https://panel.magmanode.com/api/client', {
+    console.log('🚀 Testing POWER command...');
+    const response = await fetch(`https://panel.magmanode.com/api/client/servers/${SERVER_ID}/power`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${MAGMANODE_API_KEY}`,
-        'Accept': 'application/json',
-      }
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        signal: 'start'
+      })
     });
-    console.log(`General API Status: ${serversResponse.status}`);
     
-    if (serversResponse.ok) {
-      const data = await serversResponse.json();
-      console.log('✅ Can access API! Available servers:', data);
+    console.log(`Status: ${response.status} ${response.statusText}`);
+    
+    if (response.status === 204) {
+      console.log('✅ SUCCESS! New API key works!');
+      console.log('🎯 Server start command sent successfully!');
+      console.log('⏰ Server should be starting now...');
+    } else {
+      console.log('❌ Failed with status:', response.status);
+      const errorText = await response.text();
+      console.log('Error details:', errorText);
     }
+    
   } catch (error) {
-    console.log('❌ Cannot access general API');
-  }
-
-  // Try the specific server with different endpoints
-  console.log('\n2. Testing specific server endpoints...');
-  const endpoints = [
-    '/',
-    '/resources', 
-    '/websocket'
-  ];
-
-  for (const endpoint of endpoints) {
-    try {
-      const url = `https://panel.magmanode.com/api/client/servers/${SERVER_ID}${endpoint}`;
-      console.log(`Testing: ${endpoint}`);
-      
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${MAGMANODE_API_KEY}`,
-          'Accept': 'application/json',
-        }
-      });
-      
-      console.log(`Status: ${response.status}`);
-      
-    } catch (error) {
-      console.log(`Error: ${error.message}`);
-    }
+    console.log('❌ Error:', error.message);
   }
 }
 
-testConnection();
+testNewKey();
