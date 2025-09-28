@@ -1,6 +1,6 @@
 const mineflayer = require('mineflayer');
 const MAGMANODE_API_KEY = 'ptlc_qVJhkD9kXZBh1jsac3svAV1GBeGkKag9ebFwACgkdAQ';
-const SERVER_ID = '809712'; // Updated server ID
+const SERVER_ID = '87582fcf'; // Correct server ID
 
 let bot = null;
 let serverRestarting = false;
@@ -64,4 +64,51 @@ function createBot() {
     if (connectionAttempts >= 2 && !serverRestarting) {
       console.log('🚨 Server seems dead. Starting it...');
       serverRestarting = true;
-      const
+      const startSuccess = await restartServer();
+      
+      if (startSuccess) {
+        console.log('💤 Waiting 2 minutes for server to start...');
+        connectionAttempts = 0;
+        setTimeout(() => {
+          serverRestarting = false;
+          createBot();
+        }, 120000);
+      }
+    } else if (!serverRestarting) {
+      console.log('🔄 Reconnecting in 20 seconds...');
+      setTimeout(createBot, 20000);
+    }
+  });
+
+  bot.on('error', (err) => {
+    console.log('❌ Connection error:', err.message);
+  });
+}
+
+function startAntiAFK(bot) {
+  console.log('🤖 Anti-AFK system activated!');
+  
+  const actions = [
+    () => { 
+      bot.setControlState('jump', true);
+      setTimeout(() => bot.setControlState('jump', false), 1000);
+      console.log('🤖 Anti-AFK: Jumped');
+    },
+    () => {
+      bot.look(Math.random() * Math.PI, Math.random() * Math.PI);
+      console.log('🤖 Anti-AFK: Looked around');
+    },
+    () => {
+      bot.setControlState('sneak', true);
+      setTimeout(() => bot.setControlState('sneak', false), 2000);
+      console.log('🤖 Anti-AFK: Sneaked');
+    }
+  ];
+  
+  setInterval(() => {
+    const action = actions[Math.floor(Math.random() * actions.length)];
+    action();
+  }, 60000 + Math.random() * 120000);
+}
+
+createBot();
