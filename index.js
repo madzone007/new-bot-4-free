@@ -1,4 +1,3 @@
-// index.js
 const mineflayer = require('mineflayer');
 const MAGMANODE_API_KEY = 'ptlc_IDuqtjbQoir6bP9NJWXoNcOjX77YkRUz6zVYFPfzpqy';
 const SERVER_ID = '87582fcf';
@@ -6,6 +5,7 @@ const SERVER_ID = '87582fcf';
 let bot = null;
 let serverRestarting = false;
 let connectionAttempts = 0;
+let antiAFKInterval = null;
 
 async function restartServer() {
   try {
@@ -56,11 +56,12 @@ function createBot() {
     console.log('🤖 Bot will keep server active 24/7');
     connectionAttempts = 0;
     serverRestarting = false;
-    startAntiAFK(bot);
+    startAntiAFK();
   });
 
   bot.on('end', async (reason) => {
     console.log(`🔌 Disconnected: ${reason}`);
+    stopAntiAFK();
     
     if (connectionAttempts >= 2 && !serverRestarting) {
       console.log('🚨 Server seems dead. Starting it...');
@@ -86,30 +87,54 @@ function createBot() {
   });
 }
 
-function startAntiAFK(bot) {
+function startAntiAFK() {
   console.log('🤖 Anti-AFK system activated!');
   
-  const actions = [
-    () => { 
-      bot.setControlState('jump', true);
-      setTimeout(() => bot.setControlState('jump', false), 1000);
-      console.log('🤖 Anti-AFK: Jumped');
-    },
-    () => {
-      bot.look(Math.random() * Math.PI, Math.random() * Math.PI);
-      console.log('🤖 Anti-AFK: Looked around');
-    },
-    () => {
-      bot.setControlState('sneak', true);
-      setTimeout(() => bot.setControlState('sneak', false), 2000);
-      console.log('🤖 Anti-AFK: Sneaked');
-    }
-  ];
+  // Clear any existing interval
+  if (antiAFKInterval) {
+    clearInterval(antiAFKInterval);
+  }
   
-  setInterval(() => {
+  antiAFKInterval = setInterval(() => {
+    const actions = [
+      () => { 
+        bot.setControlState('jump', true);
+        setTimeout(() => bot.setControlState('jump', false), 1000);
+        console.log('🤖 Anti-AFK: Jumped');
+      },
+      () => {
+        bot.look(Math.random() * Math.PI - 0.5, Math.random() * Math.PI - 0.5);
+        console.log('🤖 Anti-AFK: Looked around');
+      },
+      () => {
+        bot.setControlState('sneak', true);
+        setTimeout(() => bot.setControlState('sneak', false), 2000);
+        console.log('🤖 Anti-AFK: Sneaked');
+      },
+      () => {
+        // Walk forward briefly
+        bot.setControlState('forward', true);
+        setTimeout(() => {
+          bot.setControlState('forward', false);
+          // Walk backward
+          bot.setControlState('back', true);
+          setTimeout(() => bot.setControlState('back', false), 1000);
+        }, 1000);
+        console.log('🤖 Anti-AFK: Walked around');
+      }
+    ];
+    
     const action = actions[Math.floor(Math.random() * actions.length)];
     action();
-  }, 60000 + Math.random() * 120000);
+  }, 45000 + Math.random() * 30000); // Every 45-75 seconds
+}
+
+function stopAntiAFK() {
+  if (antiAFKInterval) {
+    clearInterval(antiAFKInterval);
+    antiAFKInterval = null;
+    console.log('🤖 Anti-AFK stopped');
+  }
 }
 
 createBot();
