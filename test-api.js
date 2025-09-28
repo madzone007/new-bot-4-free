@@ -1,4 +1,4 @@
-const MAGMANODE_API_KEY = 'ptlc_qVJhkD9kXZBh1jsac3svAV1GBeGkKag9ebFwACgkdAQ';
+const MAGMANODE_API_KEY = 'ptic_QuuKCOMiQrrab70qm2kTOpG91BpQXfN2SKmZB1FjLcT';
 const SERVER_ID = '1f6ba1b7';
 
 async function testPowerEndpoint() {
