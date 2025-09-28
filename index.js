@@ -1,6 +1,7 @@
+// index.js
 const mineflayer = require('mineflayer');
-const MAGMANODE_API_KEY = 'ptlc_qVJhkD9kXZBh1jsac3svAV1GBeGkKag9ebFwACgkdAQ';
-const SERVER_ID = '87582fcf'; // Correct server ID
+const MAGMANODE_API_KEY = 'ptlc_IDuqtjbQoir6bP9NJWXoNcOjX77YkRUz6zVYFPfzpqy';
+const SERVER_ID = '87582fcf';
 
 let bot = null;
 let serverRestarting = false;
